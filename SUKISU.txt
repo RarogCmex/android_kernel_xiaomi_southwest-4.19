@@ -3,8 +3,16 @@ Sukisu integration document for Lavender Kernel
 Integration based on https://github.com/tiann/KernelSU/blob/main/website/docs/guide/how-to-integrate-for-non-gki.md#manually-modify-the-kernel-source
 
 1. do_execveat_common, usually in fs/exec.c
-Done, improved
+Done, improved to match guide
 
-do_faccessat, usually in fs/open.c
-vfs_read, usually in fs/read_write.c
-vfs_statx, usually in fs/stat.c
+2. do_faccessat, usually in fs/open.c
+Done
+
+3. vfs_read, usually in fs/read_write.c
+Done
+
+4. vfs_statx, usually in fs/stat.c
+Done
+
+5. Safe mode in drivers/input/input.c
+Done
