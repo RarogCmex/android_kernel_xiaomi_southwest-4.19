@@ -28,3 +28,4 @@ Done via cherry-pick
 
 8.1 Port misc changes from main-ksunext
 
+8.2 backport strncpy_from_user_nofault from https://github.com/backslashxx/KernelSU/issues/4
