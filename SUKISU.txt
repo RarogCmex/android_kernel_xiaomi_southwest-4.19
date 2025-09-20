@@ -20,4 +20,11 @@ Done via cherry-pick
 6. Added hook at fs/devpts/inode.c
 Done via cherry-pick
 
+7. selinux: Allow init exec ksud under nousid
+Done via cherry-pick
+
+8. Port can_umount in fs/namespace.c
+Done via cherry-pick
+
+8.1 Port misc changes from main-ksunext
 
