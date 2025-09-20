@@ -2,9 +2,9 @@
 
 For devices:
 
-#. Lavender (main target)
-#. Clover
-#. Platina
+1. Lavender (main target)
+1. Clover
+1. Platina
 
 ## SukiSU
 
