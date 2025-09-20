@@ -6,13 +6,18 @@ Integration based on https://github.com/tiann/KernelSU/blob/main/website/docs/gu
 Done, improved to match guide
 
 2. do_faccessat, usually in fs/open.c
-Done
+Done via cherry-pick
 
 3. vfs_read, usually in fs/read_write.c
-Done
+Done via cherry-pick
 
 4. vfs_statx, usually in fs/stat.c
-Done
+Done via cherry-pick
 
 5. Safe mode in drivers/input/input.c
-Done
+Done via cherry-pick
+
+6. Added hook at fs/devpts/inode.c
+Done via cherry-pick
+
+
