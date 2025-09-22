@@ -8,6 +8,6 @@ export ARCH=arm64
 export PATH="${HOME}/toolchains/arm-gnu-toolchain-14.3.rel1-x86_64-aarch64-none-linux-gnu/bin:${PATH}"
 
 # Make defconfig
-make CC=clang CROSS_COMPILE=aarch64-none-linux-gnu- CLANG_TRIPLE=aarch64-none-linux-gnu- lavender_defconfig
-
+make -j$(nproc) LLVM=1 CC=clang CROSS_COMPILE=aarch64-none-linux-gnu- CLANG_TRIPLE=aarch64-none-linux-gnu- mrproper
+make -j$(nproc) LLVM=1 CC=clang CROSS_COMPILE=aarch64-none-linux-gnu- CLANG_TRIPLE=aarch64-none-linux-gnu- lavender_defconfig
 make -j$(nproc) LLVM=1 CC=clang CROSS_COMPILE=aarch64-none-linux-gnu- CLANG_TRIPLE=aarch64-none-linux-gnu-
