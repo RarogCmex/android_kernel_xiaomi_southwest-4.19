@@ -1,5 +1,5 @@
 #
-# Automatically generated file; DO NOT EDIT.
+# Automatically generated file but EDITED MANUALLY!!!
 # Linux/arm64 4.19.255 Kernel Configuration
 #
 
@@ -36,6 +36,17 @@ CONFIG_CROSS_MEMORY_ATTACH=y
 CONFIG_AUDIT=y
 CONFIG_HAVE_ARCH_AUDITSYSCALL=y
 # CONFIG_AUDITSYSCALL is not set
+
+#
+# SukiSU Configuration
+#
+CONFIG_KSU=y
+CONFIG_KPM=n # Temporarily
+CONFIG_KSU_MANUAL_HOOK=y
+CONFIG_KSU_SUSFS=y
+CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
+CONFIG_KALLSYMS_ALL=y
+CONFIG_DEBUG_KERNEL=n
 
 #
 # IRQ subsystem
@@ -5765,7 +5776,6 @@ CONFIG_FRAME_POINTER=y
 CONFIG_MAGIC_SYSRQ=y
 CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE=0x0
 # CONFIG_MAGIC_SYSRQ_SERIAL is not set
-# CONFIG_DEBUG_KERNEL is not set
 
 #
 # Memory Debugging
