@@ -1,0 +1,31 @@
+Sukisu integration document for Lavender Kernel
+
+Integration based on https://github.com/tiann/KernelSU/blob/main/website/docs/guide/how-to-integrate-for-non-gki.md#manually-modify-the-kernel-source
+
+1. do_execveat_common, usually in fs/exec.c
+Done, improved to match guide
+
+2. do_faccessat, usually in fs/open.c
+Done via cherry-pick
+
+3. vfs_read, usually in fs/read_write.c
+Done via cherry-pick
+
+4. vfs_statx, usually in fs/stat.c
+Done via cherry-pick
+
+5. Safe mode in drivers/input/input.c
+Done via cherry-pick
+
+6. Added hook at fs/devpts/inode.c
+Done via cherry-pick
+
+7. selinux: Allow init exec ksud under nousid
+Done via cherry-pick
+
+8. Port can_umount in fs/namespace.c
+Done via cherry-pick
+
+8.1 Port misc changes from main-ksunext
+
+8.2 backport strncpy_from_user_nofault from https://github.com/backslashxx/KernelSU/issues/4

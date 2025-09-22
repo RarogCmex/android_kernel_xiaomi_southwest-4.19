@@ -50,7 +50,6 @@ struct reclaim_state;
 struct capture_control;
 struct robust_list_head;
 struct sched_attr;
-struct sched_param;
 struct seq_file;
 struct sighand_struct;
 struct signal_struct;
@@ -361,6 +360,11 @@ enum uclamp_id {
 	UCLAMP_MAX,
 	UCLAMP_CNT
 };
+
+struct sched_param {
+	int sched_priority;
+};
+
 
 struct sched_info {
 #ifdef CONFIG_SCHED_INFO
@@ -1500,18 +1504,35 @@ struct task_struct {
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);
 	ANDROID_KABI_RESERVE(5);
-	ANDROID_KABI_RESERVE(6);
+#if defined(CONFIG_KSU_SUSFS)
+	ANDROID_KABI_USE(6, u64 susfs_task_state);
 #else
+	ANDROID_KABI_RESERVE(6);
+#endif // #if defined(CONFIG_KSU_SUSFS)
+#else
+#if defined(CONFIG_KSU_SUSFS)
+	u64 susfs_task_state;
+#endif
 	struct mutex			futex_exit_mutex;
 #endif
 
 	ANDROID_KABI_RESERVE(7);
-	ANDROID_KABI_RESERVE(8);
+#ifdef CONFIG_KSU_SUSFS
+	ANDROID_KABI_USE(8, u64 susfs_last_fake_mnt_id);
+#else
+ 	ANDROID_KABI_RESERVE(8);
+#endif
 
 	/*
 	 * New fields for task_struct should be added above here, so that
 	 * they are included in the randomized portion of task_struct.
 	 */
+#if defined(CONFIG_KSU_SUSFS) && !defined(ANDROID_KABI_RESERVE)
+	u64 susfs_task_state;
+#endif
+#if defined(CONFIG_KSU_SUSFS) && !defined(ANDROID_KABI_RESERVE)
+	u64 susfs_last_fake_mnt_id;
+#endif
 	randomized_struct_fields_end
 
 	/* CPU-specific state of this task: */
