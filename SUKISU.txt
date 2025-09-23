@@ -2,6 +2,8 @@ Sukisu integration document for Lavender Kernel
 
 Integration based on https://github.com/tiann/KernelSU/blob/main/website/docs/guide/how-to-integrate-for-non-gki.md#manually-modify-the-kernel-source
 
+## SukiSU
+
 1. do_execveat_common, usually in fs/exec.c
 Done, improved to match guide
 
@@ -29,3 +31,9 @@ Done via cherry-pick
 8.1 Port misc changes from main-ksunext
 
 8.2 backport strncpy_from_user_nofault from https://github.com/backslashxx/KernelSU/issues/4
+
+## SUSFS
+
+0. fs/Makefile
+Done
+
