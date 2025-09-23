@@ -34,6 +34,23 @@ Done via cherry-pick
 
 ## SUSFS
 
+Features that will probably work in 4.19:
+
+* CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+* CONFIG_KSU_SUSFS_SUS_SU
+
+Features that will work partially:
+
+* CONFIG_KSU_SUSFS_SUS_PATH
+
+Features that won't work in 4.19:
+
+* CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+
 0. fs/Makefile
 Done
 
+
+
+- Not applicable on 4.19:
+  - Bootconfig/cmdline spoofing: no `fs/proc/bootconfig.c`; feature skipped.
