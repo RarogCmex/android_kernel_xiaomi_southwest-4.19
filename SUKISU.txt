@@ -54,3 +54,227 @@ Done
 
 - Not applicable on 4.19:
   - Bootconfig/cmdline spoofing: no `fs/proc/bootconfig.c`; feature skipped.
+
+Applied susfs devpts inode patch (manual):
+ - File: `fs/devpts/inode.c`
+ - Changes: Added conditional include of `linux/susfs_def.h`, declared
+   `ksu_devpts_hook` and `ksu_handle_devpts`, and inserted a
+   `susfs_is_current_proc_su_not_allowed()` check with a call to
+   `ksu_handle_devpts()` inside `devpts_get_priv()` to preserve
+   susfs behavior where possible on 4.19.
+ - Notes: The 5.10 patch fit into the 4.19 flow with minimal structural
+   adjustments. No conflicts detected in `devpts_get_priv`. Remaining
+   susfs features still need per-file manual verification.
+
+Applied susfs exec patch (manual / verified):
+ - File: `fs/exec.c`
+ - Changes: Conditional `#include <linux/susfs_def.h>` is present; added
+   external declarations for `susfs_is_sus_su_hooks_enabled`,
+   `__ksu_is_allow_uid`, and `ksu_handle_execveat_sucompat`; injected a
+   `susfs_is_current_proc_su_not_allowed()` guard and a call to
+   `ksu_handle_execveat_sucompat()` at the start of `do_execveat_common()`.
+ - Notes: The 5.10 changes map cleanly onto 4.19's `do_execveat_common()`
+   flow. No structural conflicts observed; behavior preserved where
+   compatible. Further susfs features require stepwise verification.
+
+Applied susfs namei patch (manual / partial):
+ - File: `fs/namei.c`
+ - Changes: The repository's `fs/namei.c` already contained most of the
+   susfs modifications from the 5.10 patch: conditional inclusion of
+   `linux/susfs_def.h`, forward `extern` declarations, added
+   `ND_STATE_*` handling, and the various lookups/alloc-path-path-open
+   flow changes that route certain lookups to `susfs_fake_qstr_name`.
+ - Verified helpers: The susfs helper functions referenced from
+   `namei.c` (for example `susfs_is_sus_android_data_d_name_found`,
+   `susfs_is_inode_sus_path`, and `susfs_get_redirected_path`) are
+   implemented in `fs/susfs.c` and declared in `include/linux/susfs.h`.
+ - Missing / needs attention: `INODE_STATE_OPEN_REDIRECT` is referenced
+   in `do_filp_open()` (`filp->f_inode->i_state & INODE_STATE_OPEN_REDIRECT`) but
+   no definition for `INODE_STATE_OPEN_REDIRECT` was found in the tree.
+   susfs currently uses `i_mapping->flags` / `BIT_OPEN_REDIRECT` elsewhere;
+   the discrepancy (i_state vs. i_mapping flags) should be reconciled:
+   either define `INODE_STATE_OPEN_REDIRECT` appropriately or change the
+   check to use the mapping-bit (`i_mapping->flags & BIT_OPEN_REDIRECT`) to
+   match how susfs sets the flag.
+ - Impact: Most of the namei patch maps cleanly to 4.19. The only clear
+   blocker discovered is the missing `INODE_STATE_OPEN_REDIRECT` symbol and
+   the subtle difference of where the open-redirect flag is stored. After
+   reconciling that, run a full verification pass for corner cases under
+   `LOOKUP_RCU` / `LOOKUP_REVAL` flows.
+
+Applied susfs namespace patch (manual / verified):
+ - File: `fs/namespace.c`
+ - Changes: Integrated susfs mount/namespace helpers and protections:
+   - Conditional inclusion of `linux/susfs_def.h` and local susfs helpers
+     (`susfs_is_current_ksu_domain`, `susfs_is_current_zygote_domain`).
+   - Added susfs-specific IDAs (`susfs_mnt_id_ida`, `susfs_mnt_group_ida`)
+     and `susfs_mnt_alloc_id()` to allocate fake mount IDs starting at
+     `DEFAULT_SUS_MNT_ID`.
+   - Adjusted `mnt_free_id()`, `mnt_alloc_group_id()`, `alloc_vfsmnt()`,
+     `vfs_create_mount()`, `clone_mnt()`, `copy_tree()`, and related flows
+     to handle sus mounts, zygote/ksu callers, and to preserve/restore
+     original mount IDs via `mnt.susfs_mnt_id_backup`.
+   - Added automation hooks for sus bind mounts and try-umount logic where
+     appropriate (e.g. `do_loopback()` and `do_mount()` integration).
+   - Exposed helper `susfs_run_try_umount_for_current_mnt_ns()` and
+     `susfs_is_mnt_devname_ksu()` for susfs runtime control.
+ - Verified symbols: The file uses `mnt.susfs_mnt_id_backup` (declared
+   via `include/linux/mount.h` under `CONFIG_KSU_SUSFS`) and defines/uses
+   the susfs constants in `include/linux/susfs_def.h`.
+ - Missing / needs attention: No missing symbols were observed for the
+   namespace changes; `susfs` integrates by storing backup IDs in the
+   `vfsmount` struct (Android KABI guarded) and by modifying allocation
+   paths conditionally. Verify ABI/struct layout expectations if
+   backporting to other kernels or if `ANDROID_KABI_RESERVE` is in effect.
+ - Impact: The namespace/mount ID spoofing and automatic unmount hooks are
+   present and should provide the susfs behavior on 4.19. Follow-up testing
+   should exercise clone/copy/unshare paths and zygote/ksu interactions.
+
+Applied susfs fdinfo patch (manual):
+ - File: `fs/notify/fdinfo.c`
+ - Changes: Added conditional `#include <linux/susfs_def.h>` and adjusted
+   `show_fdinfo()` / `inotify_fdinfo()` signatures to accept a `struct file *`
+   when `CONFIG_KSU_SUSFS_SUS_MOUNT` is enabled. When a watched inode has the
+   `BIT_SUS_KSTAT` mapping flag and the caller is a non-root app proc, the
+   code now resolves the full path via `d_path()`/`kern_path()` and prints
+   the path-backed inode's info instead of the raw inode; this preserves
+   susfs kstat-hiding behavior for non-root apps.
+ - Notes: I applied the 5.10 changes using the available helpers in
+   `fs/susfs.c` (e.g., `susfs_is_current_non_root_user_app_proc()`) and
+   `susfs_def.h` bit flags. Verify runtime behavior by listing `/proc/fs/*`
+   entries under a non-root app process.
+
+Applied susfs open patch (manual / verified):
+ - File: `fs/open.c`
+ - Changes: The kernel already contains the susfs additions:
+   - Conditional `#include <linux/susfs_def.h>` is present.
+   - External declarations for `susfs_is_sus_su_hooks_enabled`,
+     `__ksu_is_allow_uid` and `ksu_handle_faccessat()` are present.
+   - A `susfs_is_current_proc_su_not_allowed()` guard and a call to
+     `ksu_handle_faccessat(&dfd, &filename, &mode, NULL)` were injected at
+     the top of `do_faccessat()` to preserve sus_su behaviour where
+     possible on 4.19.
+ - Note on signature differences: The 5.10 patch shows `do_faccessat()`
+   with an extra `flags` parameter; on 4.19 the function doesn't take
+   `flags`, but the susfs hook is applied without changing the signature
+   (the hook is called with `NULL` for the flags pointer). This preserves
+   behavior while avoiding an ABI change.
+ - Impact: The sus_su access-hook behavior is present. Run functional
+   tests for `faccessat` with sus-su enabled and non-root app processes to
+   validate behaviour.
+
+Applied susfs proc fd patch (manual):
+ - File: `fs/proc/fd.c`
+ - Changes: Added conditional `#include <linux/susfs_def.h>` and susfs-aware
+   logic in `seq_show()` to hide/redirect proc fd information for non-root
+   app processes when the file belongs to a sus mount. When appropriate,
+   resolve the absolute path (`d_path` + `kern_path`) and print the
+   underlying path-backed inode's ino and the fake `mnt_id` to preserve
+   susfs hiding behavior.
+ - Notes: The change walks up parent mounts to find a non-sus mnt_id and
+   prints the resolved inode number when hiding is triggered. Test `/proc/<pid>/fd` as
+   a non-root app while a sus mount is in use to validate behavior.
+
+Applied susfs proc namespace patch (manual):
+ - File: `fs/proc_namespace.c`
+ - Changes: Added `susfs_hide_sus_mnts_for_all_procs` toggle and applied
+   conditional checks in `show_vfsmnt()`, `show_mountinfo()` and
+   `show_vfsstat()` to skip printing mount entries whose `mnt_id` is a
+   sus mount id (>= `DEFAULT_SUS_MNT_ID`) when the toggle is enabled.
+ - Notes: The default toggle value is `true` so sus mounts are hidden by
+   default. If you prefer per-process hiding only, change the default and
+   add per-task checks. Verify `/proc/<pid>/mounts` and `/proc/mounts`
+   outputs in different user contexts after enabling `CONFIG_KSU_SUSFS_SUS_MOUNT`.
+
+Applied susfs proc task_mmu patch (manual):
+ - File: `fs/proc/task_mmu.c`
+ - Changes: Added conditional include of `linux/susfs_def.h` under
+   `CONFIG_KSU_SUSFS_SUS_KSTAT` and integrated `susfs_sus_ino_for_show_map_vma()`
+   into `show_map_vma()` so that when a mapped inode has `BIT_SUS_KSTAT` the
+   proc maps output reports the susfs-provided spoofed dev/ino instead of the
+   real inode. This mirrors the kstat-hiding behavior for other proc outputs.
+ - Notes: The patch uses `i_mapping->flags & BIT_SUS_KSTAT` on 4.19 because
+   `i_state` fields used in 5.10 don't exist or differ. Ensure `BIT_SUS_KSTAT`
+   is defined in `include/linux/susfs_def.h` (it is present in this tree).
+
+Applied susfs readdir patch (manual):
+ - File: `fs/readdir.c`
+ - Changes: Added `#include <linux/susfs_def.h>` and forward declarations for
+   several susfs helper functions. Integrated hiding logic into the various
+   getdents/getdents64/getdents compat flows: when `CONFIG_KSU_SUSFS_SUS_PATH`
+   is enabled and the current task is a non-root app process, susfs will
+   suppress directory entries that match sus path conditions (android data
+   / sdcard patterns) or whose inode is marked as a sus path. The change also
+   uses `susfs_sus_ino_for_filldir64()` to filter entries during readdir.
+ - Notes: 4.19 lacks `ilookup()` in some builds, so this port uses available
+   inode checks and susfs helper functions present in `fs/susfs.c`. Test
+   directory listings under `/sdcard/Android/data` and other sus-paths as a
+   non-root app to confirm hiding works.
+
+Applied susfs stat patch (manual):
+ - File: `fs/stat.c`
+ - Changes: Included `linux/susfs_def.h` when any susfs feature (kstat, mount,
+   or sus_su) is enabled. Integrated `susfs_sus_ino_for_generic_fillattr()`
+   into `generic_fillattr()` and switched checks from `i_state` to
+   `i_mapping->flags & BIT_SUS_KSTAT` to match 4.19's available fields. Also
+   added sus_su hook externs for `ksu_handle_stat()` and used the sus mount
+   logic to set `stat->mnt_id` by walking parent mounts when necessary.
+ - Notes: This keeps kstat-hiding consistent across `stat`/`statx`/`fstat`
+   family calls; verify `stat` output from non-root apps on sus-marked inodes.
+
+Applied susfs statfs patch (manual):
+ - File: `fs/statfs.c`
+ - Changes: Added conditional inclusion of `linux/susfs_def.h` and used
+   susfs mount handling in `vfs_statfs()` to resolve the visible `mnt_id`
+   for non-root app processes (walking up parent mounts to a non-sus id).
+   Also reject `vfs_ustat()` when the superblock root is marked as a sus
+   mount (uses `i_mapping->flags & BIT_SUS_MOUNT`).
+ - Notes: This maintains consistency for `statfs` output seen by
+   non-root apps; test `statfs` and `df` behavior under sus mounts.
+
+Applied susfs include change for `mount.h` (manual):
+ - File: `include/linux/mount.h`
+ - Changes: Made `susfs_mnt_id_backup` visible under `CONFIG_KSU_SUSFS` via
+   `ANDROID_KABI_USE(4, u64 susfs_mnt_id_backup)` while keeping the reserve
+   fallback. This enables storing per-mount susfs backup IDs in the vfsmount
+   layout when the feature is enabled.
+ - Notes: This touches Android KABI macros; ensure this matches your
+   KABI policy and testing platform.
+ 
+Applied susfs kallsyms patch (manual):
+ - File: `kernel/kallsyms.c`
+ - Changes: Added conditional declaration for `susfs_starts_with()` under
+   `CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS` and expanded the `/proc/kallsyms`
+   symbol-filtering branch to call `susfs_starts_with()` for a list of
+   `ksu_`/`__ksu_`/`susfs_`/`ksud`/`kernelsu` and related prefixed symbols so
+   those are hidden when the feature is enabled. Preserved existing behavior
+   when the config is not set.
+ - Notes: The `susfs_starts_with()` helper is referenced and must be
+   implemented/linked in the susfs code (not added here). Applied manually
+   to the 4.19 source; the change is non-invasive when the config flag is
+   disabled.
+
+Applied susfs uname spoof patch (manual):
+ - File: `kernel/sys.c`
+ - Changes: Added `#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME` extern for
+   `susfs_spoof_uname()` and a conditional call to `susfs_spoof_uname(&tmp)`
+   in `newuname()` so userspace-visible utsname fields can be spoofed when
+   the feature is enabled.
+ - Notes: On this tree the changes were already present in
+   `kernel/sys.c` (no code edit required); I verified the conditional
+   declaration and call exist. Ensure the implementation of
+   `susfs_spoof_uname()` is provided in the susfs code path.
+
+Applied susfs selinux avc patch (manual):
+ - File: `security/selinux/avc.c`
+ - Changes: Added `#ifdef CONFIG_KSU_SUSFS` externs for `susfs_ksu_sid`,
+   `susfs_kernel_sid` and a `susfs_is_avc_log_spoofing_enabled` flag, and
+   integrated conditional spoofing into the AVC audit output so that when
+   the target SID equals `susfs_ksu_sid` and spoofing is enabled, the
+   audit prints kernel-equivalent tsid/tcontext values instead of the KSU
+   sid. This preserves expected audit visibility for non-app viewers.
+ - Notes: The referenced symbols must be defined/initialized by the susfs
+   implementation (not added here). I verified the conditional declarations
+   and the spoofing branch are already present and fit cleanly into 4.19's
+   AVC flows; no structural edits were required beyond documenting the
+   applied behavior.
