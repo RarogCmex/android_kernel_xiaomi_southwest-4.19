@@ -219,7 +219,7 @@ static int filldir(struct dir_context *ctx, const char *name, int namlen,
 		sizeof(long));
 
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
-	if (likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC) && susfs_sus_ino_for_filldir64(ino)) {
+	if (likely(susfs_is_current_non_root_user_app_proc()) && susfs_sus_ino_for_filldir64(ino)) {
 		return 0;
 	}
 #endif
@@ -313,7 +313,7 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
 		sizeof(u64));
 
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
-	if (likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC) && susfs_sus_ino_for_filldir64(ino)) {
+	if (likely(susfs_is_current_non_root_user_app_proc()) && susfs_sus_ino_for_filldir64(ino)) {
 		return 0;
 	}
 #endif
@@ -420,7 +420,7 @@ static int compat_fillonedir(struct dir_context *ctx, const char *name,
 	if (buf->result)
 		return -EINVAL;
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
-	if (likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC) && susfs_sus_ino_for_filldir64(ino)) {
+	if (likely(susfs_is_current_non_root_user_app_proc()) && susfs_sus_ino_for_filldir64(ino)) {
 		return 0;
 	}
 #endif
@@ -500,7 +500,7 @@ static int compat_filldir(struct dir_context *ctx, const char *name, int namlen,
 	if (reclen > buf->count)
 		return -EINVAL;
 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
-	if (likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC) && susfs_sus_ino_for_filldir64(ino)) {
+	if (likely(susfs_is_current_non_root_user_app_proc()) && susfs_sus_ino_for_filldir64(ino)) {
 		return 0;
 	}
 #endif
