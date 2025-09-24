@@ -1518,7 +1518,7 @@ static int bpf_obj_pin(const union bpf_attr *attr)
 	if (CHECK_ATTR(BPF_OBJ) || attr->file_flags != 0)
 		return -EINVAL;
 
-	return bpf_obj_pin_user(attr->bpf_fd, u64_to_user_ptr(attr->pathname));
+	return bpf_obj_pin_user(attr->bpf_fd, u64_to_user_ptr((u64)attr->pathname));
 }
 
 static int bpf_obj_get(const union bpf_attr *attr)
@@ -1527,7 +1527,7 @@ static int bpf_obj_get(const union bpf_attr *attr)
 	    attr->file_flags & ~BPF_OBJ_FLAG_MASK)
 		return -EINVAL;
 
-	return bpf_obj_get_user(u64_to_user_ptr(attr->pathname),
+	return bpf_obj_get_user(u64_to_user_ptr((u64)attr->pathname),
 				attr->file_flags);
 }
 
@@ -1564,7 +1564,7 @@ static int bpf_raw_tracepoint_open(const union bpf_attr *attr)
 	char tp_name[128];
 	int tp_fd, err;
 
-	if (strncpy_from_user(tp_name, u64_to_user_ptr(attr->raw_tracepoint.name),
+	if (strncpy_from_user(tp_name, u64_to_user_ptr((u64)attr->raw_tracepoint.name),
 			      sizeof(tp_name) - 1) < 0)
 		return -EFAULT;
 	tp_name[sizeof(tp_name) - 1] = 0;

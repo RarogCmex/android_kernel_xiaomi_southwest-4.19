@@ -62,7 +62,7 @@ static int bpf_test_finish(const union bpf_attr *kattr,
 			   union bpf_attr __user *uattr, const void *data,
 			   u32 size, u32 retval, u32 duration)
 {
-	void __user *data_out = u64_to_user_ptr(kattr->test.data_out);
+	void __user *data_out = u64_to_user_ptr((u64)kattr->test.data_out);
 	int err = -EFAULT;
 
 	if (data_out && copy_to_user(data_out, data, size))
@@ -81,7 +81,7 @@ out:
 static void *bpf_test_init(const union bpf_attr *kattr, u32 size,
 			   u32 headroom, u32 tailroom)
 {
-	void __user *data_in = u64_to_user_ptr(kattr->test.data_in);
+	void __user *data_in = u64_to_user_ptr((u64)kattr->test.data_in);
 	void *data;
 
 	if (size < ETH_HLEN || size > PAGE_SIZE - headroom - tailroom)

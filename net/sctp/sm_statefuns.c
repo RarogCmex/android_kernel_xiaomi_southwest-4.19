@@ -2817,7 +2817,7 @@ enum sctp_disposition sctp_sf_do_9_2_shutdown(
 	chunk->subh.shutdown_hdr = sdh;
 	ctsn = ntohl(sdh->cum_tsn_ack);
 
-	if (TSN_lt(ctsn, asoc->ctsn_ack_point)) {
+	if (TSN_lt(ctsn, (__u32)asoc->ctsn_ack_point)) {
 		pr_debug("%s: ctsn:%x, ctsn_ack_point:%x\n", __func__, ctsn,
 			 asoc->ctsn_ack_point);
 
@@ -2828,7 +2828,7 @@ enum sctp_disposition sctp_sf_do_9_2_shutdown(
 	 * send, terminating the association and respond to the
 	 * sender with an ABORT.
 	 */
-	if (!TSN_lt(ctsn, asoc->next_tsn))
+	if (!TSN_lt(ctsn, (__u32)asoc->next_tsn))
 		return sctp_sf_violation_ctsn(net, ep, asoc, type, arg, commands);
 
 	/* API 5.3.1.5 SCTP_SHUTDOWN_EVENT
@@ -2902,7 +2902,7 @@ enum sctp_disposition sctp_sf_do_9_2_shut_ctsn(
 	sdh = (struct sctp_shutdownhdr *)chunk->skb->data;
 	ctsn = ntohl(sdh->cum_tsn_ack);
 
-	if (TSN_lt(ctsn, asoc->ctsn_ack_point)) {
+	if (TSN_lt(ctsn, (__u32)asoc->ctsn_ack_point)) {
 		pr_debug("%s: ctsn:%x, ctsn_ack_point:%x\n", __func__, ctsn,
 			 asoc->ctsn_ack_point);
 
@@ -2913,7 +2913,7 @@ enum sctp_disposition sctp_sf_do_9_2_shut_ctsn(
 	 * send, terminating the association and respond to the
 	 * sender with an ABORT.
 	 */
-	if (!TSN_lt(ctsn, asoc->next_tsn))
+	if (!TSN_lt(ctsn, (__u32)asoc->next_tsn))
 		return sctp_sf_violation_ctsn(net, ep, asoc, type, arg, commands);
 
 	/* verify, by checking the Cumulative TSN Ack field of the
@@ -3040,7 +3040,7 @@ enum sctp_disposition sctp_sf_do_ecn_cwr(struct net *net,
 	lowest_tsn = ntohl(cwr->lowest_tsn);
 
 	/* Does this CWR ack the last sent congestion notification? */
-	if (TSN_lte(asoc->last_ecne_tsn, lowest_tsn)) {
+	if (TSN_lte((__u32)asoc->last_ecne_tsn, lowest_tsn)) {
 		/* Stop sending ECNE. */
 		sctp_add_cmd_sf(commands,
 				SCTP_CMD_ECN_CWR,
@@ -3375,7 +3375,7 @@ enum sctp_disposition sctp_sf_eat_sack_6_2(struct net *net,
 	 *     Cumulative TSN Ack is less than the Cumulative TSN Ack
 	 *     Point indicates an out-of-order SACK.
 	 */
-	if (TSN_lt(ctsn, asoc->ctsn_ack_point)) {
+	if (TSN_lt(ctsn, (__u32)asoc->ctsn_ack_point)) {
 		pr_debug("%s: ctsn:%x, ctsn_ack_point:%x\n", __func__, ctsn,
 			 asoc->ctsn_ack_point);
 
@@ -3386,7 +3386,7 @@ enum sctp_disposition sctp_sf_eat_sack_6_2(struct net *net,
 	 * send, terminating the association and respond to the
 	 * sender with an ABORT.
 	 */
-	if (!TSN_lt(ctsn, asoc->next_tsn))
+	if (!TSN_lt(ctsn, (__u32)asoc->next_tsn))
 		return sctp_sf_violation_ctsn(net, ep, asoc, type, arg, commands);
 
 	/* Return this SACK for further processing.  */

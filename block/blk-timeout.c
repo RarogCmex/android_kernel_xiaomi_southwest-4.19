@@ -109,7 +109,7 @@ static void blk_rq_check_expired(struct request *rq, unsigned long *next_timeout
 {
 	const unsigned long deadline = blk_rq_deadline(rq);
 
-	if (time_after_eq(jiffies, deadline)) {
+	if (time_after_eq(jiffies, (unsigned long)deadline)) {
 		list_del_init(&rq->timeout_list);
 
 		/*
@@ -117,7 +117,7 @@ static void blk_rq_check_expired(struct request *rq, unsigned long *next_timeout
 		 */
 		if (!blk_mark_rq_complete(rq))
 			blk_rq_timed_out(rq);
-	} else if (!*next_set || time_after(*next_timeout, deadline)) {
+	} else if (!*next_set || time_after(*next_timeout, (unsigned long)deadline)) {
 		*next_timeout = deadline;
 		*next_set = 1;
 	}
