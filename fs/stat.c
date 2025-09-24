@@ -23,7 +23,7 @@
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
-
+#include "mount.h"
 #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 extern void susfs_sus_ino_for_generic_fillattr(unsigned long ino, struct kstat *stat);
 #endif
@@ -68,6 +68,9 @@ void generic_fillattr(struct inode *inode, struct kstat *stat)
 		stat->result_mask &= ~STATX_ATIME;
 	if (IS_AUTOMOUNT(inode))
 		stat->attributes |= STATX_ATTR_AUTOMOUNT;
+	
+	/* Initialize mnt_id to 0 - will be set by caller if needed */
+	stat->mnt_id = 0;
 }
 EXPORT_SYMBOL(generic_fillattr);
 
@@ -599,6 +602,7 @@ cp_statx(const struct kstat *stat, struct statx __user *buffer)
 	tmp.stx_rdev_minor = MINOR(stat->rdev);
 	tmp.stx_dev_major = MAJOR(stat->dev);
 	tmp.stx_dev_minor = MINOR(stat->dev);
+	tmp.stx_mnt_id = stat->mnt_id;
 
 	return copy_to_user(buffer, &tmp, sizeof(tmp)) ? -EFAULT : 0;
 }

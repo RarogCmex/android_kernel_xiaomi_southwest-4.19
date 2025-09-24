@@ -285,3 +285,44 @@ Applied susfs selinux avc patch (manual):
    and the spoofing branch are already present and fit cleanly into 4.19's
    AVC flows; no structural edits were required beyond documenting the
    applied behavior.
+
+## STATX Mount ID Backport (4.19)
+
+Applied partial backport of STATX_MNT_ID and STATX_ATTR_MOUNT_ROOT functionality
+from kernel 5.10 to 4.19 to support SuSFS mount ID spoofing:
+
+Applied UAPI changes (manual):
+ - File: `include/uapi/linux/stat.h`
+ - Changes: Added `STATX_MNT_ID` (0x00001000U) and `STATX_ATTR_MOUNT_ROOT` 
+   (0x00002000U) constants, and added `stx_mnt_id` field to `struct statx`
+   by replacing one of the spare fields at offset 0x90. Added padding field
+   to maintain exact struct size compatibility.
+ - Notes: This maintains UAPI compatibility since we're using existing spare
+   space in the struct and preserving the exact struct size. Existing userspace
+   programs will continue to work without any ABI changes.
+
+Applied kernel structure changes (manual):
+ - File: `include/linux/stat.h`
+ - Changes: Added `mnt_id` field to `struct kstat` to store mount ID
+   information internally in the kernel.
+ - Notes: This enables the kernel to track mount IDs for SuSFS spoofing
+   functionality.
+
+Applied statx implementation changes (manual):
+ - File: `fs/stat.c`
+ - Changes: Updated `cp_statx()` function to copy `mnt_id` from `struct kstat`
+   to `stx_mnt_id` in `struct statx` for userspace consumption. Added `mnt_id`
+   initialization in `generic_fillattr()` to ensure the field is always set.
+   The existing SuSFS mount ID spoofing logic in `vfs_statx()` now works
+   correctly with the new fields.
+ - Notes: This completes the backport by enabling the full mount ID spoofing
+   functionality that SuSFS requires. The implementation preserves the original
+   4.19 behavior for non-SuSFS cases while enabling mount ID spoofing when
+   SuSFS features are active. The `mnt_id` field is properly initialized in
+   all code paths to prevent uninitialized field usage.
+
+Backport Impact:
+ - SuSFS mount ID spoofing now works correctly in kernel 4.19
+ - UAPI compatibility maintained - no breaking changes for existing userspace
+ - All SuSFS mount-related features are now functional
+ - No performance impact on non-SuSFS code paths
