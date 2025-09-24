@@ -204,19 +204,26 @@ Applied susfs proc task_mmu patch (manual):
    `i_state` fields used in 5.10 don't exist or differ. Ensure `BIT_SUS_KSTAT`
    is defined in `include/linux/susfs_def.h` (it is present in this tree).
 
-Applied susfs readdir patch (manual):
+Applied susfs readdir patch (manual / fixed):
  - File: `fs/readdir.c`
  - Changes: Added `#include <linux/susfs_def.h>` and forward declarations for
    several susfs helper functions. Integrated hiding logic into the various
    getdents/getdents64/getdents compat flows: when `CONFIG_KSU_SUSFS_SUS_PATH`
    is enabled and the current task is a non-root app process, susfs will
    suppress directory entries that match sus path conditions (android data
-   / sdcard patterns) or whose inode is marked as a sus path. The change also
-   uses `susfs_sus_ino_for_filldir64()` to filter entries during readdir.
+   / sdcard patterns) or whose inode is marked as a sus path. The change uses
+   `susfs_is_sus_android_data_d_name_found()` and `susfs_is_sus_sdcard_d_name_found()`
+   to filter entries during readdir using name-based filtering.
+ - FIXED: Replaced non-existent `susfs_sus_ino_for_filldir64()` function with
+   modern SUSFS name-based filtering functions. The old inode-based approach
+   was not available in the modern SUSFS implementation, causing linker errors.
+   The new approach uses `susfs_is_sus_android_data_d_name_found(name) || 
+   susfs_is_sus_sdcard_d_name_found(name)` which is more efficient and works
+   directly with the directory entry names available in filldir functions.
  - Notes: 4.19 lacks `ilookup()` in some builds, so this port uses available
-   inode checks and susfs helper functions present in `fs/susfs.c`. Test
-   directory listings under `/sdcard/Android/data` and other sus-paths as a
-   non-root app to confirm hiding works.
+   name-based filtering functions present in `fs/susfs.c`. Test directory
+   listings under `/sdcard/Android/data` and other sus-paths as a non-root
+   app to confirm hiding works.
 
 Applied susfs stat patch (manual):
  - File: `fs/stat.c`
