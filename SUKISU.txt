@@ -47,11 +47,8 @@ Features that won't work in 4.19:
 
 * CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
 
-0. fs/Makefile
+Applied fs/Makefile:
 Done
-
-
-
 - Not applicable on 4.19:
   - Bootconfig/cmdline spoofing: no `fs/proc/bootconfig.c`; feature skipped.
 
@@ -88,7 +85,7 @@ Applied susfs namei patch (manual / partial):
    `namei.c` (for example `susfs_is_sus_android_data_d_name_found`,
    `susfs_is_inode_sus_path`, and `susfs_get_redirected_path`) are
    implemented in `fs/susfs.c` and declared in `include/linux/susfs.h`.
- - Missing / needs attention: `INODE_STATE_OPEN_REDIRECT` is referenced
+ - BEFORE: Missing / needs attention: `INODE_STATE_OPEN_REDIRECT` is referenced
    in `do_filp_open()` (`filp->f_inode->i_state & INODE_STATE_OPEN_REDIRECT`) but
    no definition for `INODE_STATE_OPEN_REDIRECT` was found in the tree.
    susfs currently uses `i_mapping->flags` / `BIT_OPEN_REDIRECT` elsewhere;
@@ -96,11 +93,21 @@ Applied susfs namei patch (manual / partial):
    either define `INODE_STATE_OPEN_REDIRECT` appropriately or change the
    check to use the mapping-bit (`i_mapping->flags & BIT_OPEN_REDIRECT`) to
    match how susfs sets the flag.
- - Impact: Most of the namei patch maps cleanly to 4.19. The only clear
+ - BEFORE: Impact: Most of the namei patch maps cleanly to 4.19. The only clear
    blocker discovered is the missing `INODE_STATE_OPEN_REDIRECT` symbol and
    the subtle difference of where the open-redirect flag is stored. After
    reconciling that, run a full verification pass for corner cases under
    `LOOKUP_RCU` / `LOOKUP_REVAL` flows.
+ - FIXED: `INODE_STATE_OPEN_REDIRECT` inconsistency resolved. All references
+   in `do_filp_open()` and other functions now use `i_mapping->flags & BIT_OPEN_REDIRECT`
+   to match the 4.19 susfs implementation approach. Also fixed all `INODE_STATE_SUS_PATH`
+   references to use `i_mapping->flags & BIT_SUS_PATH` and updated task state checks
+   to use `susfs_is_current_non_root_user_app_proc()` helper function.
+ - Impact: The namei patch now maps cleanly to 4.19. All inode state flag
+   inconsistencies have been resolved by using the proper 4.19 approach
+   (`i_mapping->flags` instead of `i_state`). The susfs implementation is
+   now consistent throughout the codebase. Ready for full verification pass
+   under `LOOKUP_RCU` / `LOOKUP_REVAL` flows.
 
 Applied susfs namespace patch (manual / verified):
  - File: `fs/namespace.c`

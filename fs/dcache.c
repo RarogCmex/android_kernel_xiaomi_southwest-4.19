@@ -2124,7 +2124,7 @@ seqretry:
 		if (parent->d_op->d_compare(dentry, tlen, tname, name) != 0)
 			continue;
 	        #ifdef CONFIG_KSU_SUSFS_SUS_PATH
- 		  if (dentry->d_inode && unlikely(dentry->d_inode->i_state & INODE_STATE_SUS_PATH) && likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC)) {
+ 		  if (dentry->d_inode && unlikely(dentry->d_inode->i_mapping->flags & BIT_SUS_PATH) && likely(susfs_is_current_non_root_user_app_proc())) {
  			continue;
  		  }
                 #endif
@@ -2308,7 +2308,7 @@ struct dentry *__d_lookup(const struct dentry *parent, const struct qstr *name)
 			continue;
 
                 #ifdef CONFIG_KSU_SUSFS_SUS_PATH
- 		  if (dentry->d_inode && unlikely(dentry->d_inode->i_state & INODE_STATE_SUS_PATH) && likely(current->susfs_task_state & TASK_STRUCT_NON_ROOT_USER_APP_PROC)) {
+ 		  if (dentry->d_inode && unlikely(dentry->d_inode->i_mapping->flags & BIT_SUS_PATH) && likely(susfs_is_current_non_root_user_app_proc())) {
  			continue;
  		  }
                 #endif
