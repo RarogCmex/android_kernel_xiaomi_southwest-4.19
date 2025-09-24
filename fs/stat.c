@@ -182,7 +182,9 @@ EXPORT_SYMBOL(vfs_statx_fd);
  * 0 will be returned on success, and a -ve error code if unsuccessful.
  */
 
-#ifdef CONFIG_KSU
+#ifdef CONFIG_KSU_SUSFS_SUS_SU
+extern bool susfs_is_sus_su_hooks_enabled __read_mostly;
+extern bool __ksu_is_allow_uid(uid_t uid);
 extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
 #endif
 
@@ -192,10 +194,21 @@ int vfs_statx(int dfd, const char __user *filename, int flags,
 	struct path path;
 	int error = -EINVAL;
 	unsigned int lookup_flags = LOOKUP_FOLLOW | LOOKUP_AUTOMOUNT;
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+	struct mount *mnt;
+#endif
 
-        #ifdef CONFIG_KSU
-	  ksu_handle_stat(&dfd, &filename, &flags);
-        #endif
+#ifdef CONFIG_KSU_SUSFS_SUS_SU
+	if (likely(susfs_is_current_proc_su_not_allowed())) {
+		goto orig_flow;
+	}
+	if (likely(susfs_is_sus_su_hooks_enabled) &&
+		unlikely(__ksu_is_allow_uid(current_uid().val)))
+	{
+		ksu_handle_stat(&dfd, &filename, &flags);
+	}
+orig_flow:
+#endif
 
 	if ((flags & ~(AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT |
 		       AT_EMPTY_PATH | KSTAT_QUERY_FLAGS)) != 0)
@@ -214,6 +227,18 @@ retry:
 		goto out;
 
 	error = vfs_getattr(&path, stat, request_mask, flags);
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+	mnt = real_mount(path.mnt);
+	if (likely(susfs_is_current_non_root_user_app_proc())) {
+		for (; mnt->mnt_id >= DEFAULT_SUS_MNT_ID; mnt = mnt->mnt_parent) {}
+	}
+	stat->mnt_id = mnt->mnt_id;
+#else
+	stat->mnt_id = real_mount(path.mnt)->mnt_id;
+#endif
+	stat->result_mask |= STATX_MNT_ID;
+	if (path.mnt->mnt_root == path.dentry)
+		stat->attributes |= STATX_ATTR_MOUNT_ROOT;
 	path_put(&path);
 	if (retry_estale(error, lookup_flags)) {
 		lookup_flags |= LOOKUP_REVAL;
