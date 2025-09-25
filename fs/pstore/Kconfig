@@ -154,3 +154,20 @@ config PSTORE_RAM
 	  "ramoops.ko".
 
 	  For more information, see Documentation/admin-guide/ramoops.rst.
+
+config PSTORE_RAM_FORCE_ECC
+	bool "Force ECC configuration for ramoops"
+	depends on PSTORE_RAM
+	default n
+	help
+	  This option forces ECC (Error Correcting Code) configuration for
+	  ramoops even when not specified in device tree. This is useful
+	  when the device tree is pre-installed and cannot be modified.
+
+	  When enabled, ramoops will use ECC with default parameters:
+	  - ECC size: 16 bytes (or value from ramoops.ecc parameter)
+	  - Block size: 128 bytes
+	  - Symbol size: 8 bits
+	  - Polynomial: 0x11d (Reed-Solomon)
+
+	  If unsure, say N.

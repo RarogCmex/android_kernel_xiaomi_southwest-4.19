@@ -99,6 +99,12 @@ MODULE_PARM_DESC(ramoops_ecc,
 		"ECC buffer size in bytes (1 is a special value, means 16 "
 		"bytes ECC)");
 
+#ifdef CONFIG_PSTORE_RAM_FORCE_ECC
+static const int ramoops_force_ecc = 1;
+#else
+static const int ramoops_force_ecc = 0;
+#endif
+
 struct ramoops_context {
 	struct persistent_ram_zone **dprzs;	/* Oops dump zones */
 	struct persistent_ram_zone *cprz;	/* Console zone */
@@ -801,6 +807,17 @@ static int ramoops_probe(struct platform_device *pdev)
 	cxt->dump_oops = pdata->dump_oops;
 	cxt->flags = pdata->flags;
 	cxt->ecc_info = pdata->ecc_info;
+
+	/* HACK: Force ECC configuration if not set in device tree */
+	if (ramoops_force_ecc && !cxt->ecc_info.ecc_size) {
+		int ecc_size = ramoops_ecc ? (ramoops_ecc == 1 ? 16 : ramoops_ecc) : 16;
+		pr_info("ramoops: forcing ECC configuration (ecc_size=%d, force_ecc=%d)\n", 
+			ecc_size, ramoops_force_ecc);
+		cxt->ecc_info.ecc_size = ecc_size;
+		cxt->ecc_info.block_size = 128;  /* Default block size */
+		cxt->ecc_info.symsize = 8;       /* Default symbol size */
+		cxt->ecc_info.poly = 0x11d;      /* Default polynomial */
+	}
 
 	paddr = cxt->phys_addr;
 
