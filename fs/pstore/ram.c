@@ -811,12 +811,35 @@ static int ramoops_probe(struct platform_device *pdev)
 	/* HACK: Force ECC configuration if not set in device tree */
 	if (ramoops_force_ecc && !cxt->ecc_info.ecc_size) {
 		int ecc_size = ramoops_ecc ? (ramoops_ecc == 1 ? 16 : ramoops_ecc) : 16;
-		pr_info("ramoops: forcing ECC configuration (ecc_size=%d, force_ecc=%d)\n", 
-			ecc_size, ramoops_force_ecc);
-		cxt->ecc_info.ecc_size = ecc_size;
-		cxt->ecc_info.block_size = 128;  /* Default block size */
-		cxt->ecc_info.symsize = 8;       /* Default symbol size */
-		cxt->ecc_info.poly = 0x11d;      /* Default polynomial */
+		int block_size = 128;  /* Default block size */
+		size_t min_buffer_size;
+		bool ecc_enabled = false;
+		
+		/* Try different ECC sizes if the default doesn't fit */
+		int ecc_sizes[] = {ecc_size, 8, 4, 2, 1};
+		int i;
+		
+		for (i = 0; i < ARRAY_SIZE(ecc_sizes); i++) {
+			ecc_size = ecc_sizes[i];
+			/* Conservative estimate: need at least 2x ECC size + one block */
+			min_buffer_size = (ecc_size * 3) + block_size;
+			
+			if (cxt->size >= min_buffer_size) {
+				pr_info("ramoops: forcing ECC configuration (ecc_size=%d, force_ecc=%d)\n", 
+					ecc_size, ramoops_force_ecc);
+				cxt->ecc_info.ecc_size = ecc_size;
+				cxt->ecc_info.block_size = block_size;
+				cxt->ecc_info.symsize = 8;       /* Default symbol size */
+				cxt->ecc_info.poly = 0x11d;      /* Default polynomial */
+				ecc_enabled = true;
+				break;
+			}
+		}
+		
+		if (!ecc_enabled) {
+			pr_warn("ramoops: ECC disabled - insufficient buffer space (need at least %zu, have %lu)\n",
+				min_buffer_size, cxt->size);
+		}
 	}
 
 	paddr = cxt->phys_addr;
